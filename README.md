@@ -202,7 +202,7 @@ In the database section we'll setup the following resources: _Secret_, _PV_, _PV
                     - The image used to deploy the _Pods_ is the official PostgreSQL image.
                 - `containers[0].ports.containerPort = 5432`
                     - The container exposes the default port of the official PostgreSQL image.
-                - `containers[0].envFrom`
+                - `containers[0].envFrom.secretRef`
                     - Inject all the secrets from the _Secret_ store `database-secret` as environment variables of the container.
                 - `containers[0].volumeMounts`
                     - The container mounts just one volume on path `/var/lib/postgresql/data` (container), where it stores the data of our database.
@@ -314,7 +314,7 @@ In the second section we'll setup the Django API and its resources, which are: _
                     - The image was generated using the backend `Dockerfile` created on the [last tutorial](https://blog.mayflower.de/13652-containerizing-django-react-docker.html?cookie-state-change=1683468755671).
                 - `containers[0].ports.containerPort = 8000`
                     - The container exposes the default port of the official Django image.
-                - `containers[0].envFrom`
+                - `containers[0].envFrom.secretRef`
                     - Inject all the secrets from the _Secret_ store `backend-secret` as environment variables of the container.
                 - `containers[0].volumeMounts`
                     - The container mounts just one volume on path `/var/log` (container), where it writes Django API logs.
@@ -385,9 +385,135 @@ In the second section we'll setup the Django API and its resources, which are: _
                 - `paths[0].backend.service.port.number = 8000`
                     - We mapped the _Service's_ port `8000` to the root route.
 
+---
+
 To deploy our backend in we can execute `kubectl create -f ~/mayflower/infra/backend`, and "voilà", our Django API is accessible through the URL `https://api.mayflower.com`. **Isn't it cool!?**
 
 Play around with your API, add some students to our database, so you can see it later on our frontend URL.
 
 ![Django Admin](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/django_admin.png)
 ![Student's Endpoint](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/students_endpoint.png)
+
+### Stage 3 - Frontend (React APP)
+
+Last but not least, we'll deploy the React APP using the following resources: _ConfigMap_, _Deployment_, _Service_, and _Ingress_. Note that this time we opted for a _ConfigMap_ instead of a _Secret_, because the only variable we will store in it isn't that important and can be exposed to other people.
+
+1. `~/mayflower/infra/frontend/config-map.yaml`
+
+    ```yaml
+    apiVersion: v1
+    data:
+      REACT_APP_API_URL: https://api.mayflower.de
+    kind: ConfigMap
+    metadata:
+      name: frontend-config-map
+    ```
+
+    In this _ConfigMap_ manifest we set just one environment variable called `REACT_APP_API_URL`. This variable is used to print the Django Admin URL as a link in the frontend.
+
+---
+
+2. `~/mayflower/infra/frontend/deployment.yaml`
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: frontend
+      name: frontend-deployment
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: frontend
+      template:
+        metadata:
+          labels:
+            app: frontend
+        spec:
+          containers:
+            - image: rodolfoksveiga/django-react_react:latest
+              name: react
+              envFrom:
+                - configMapRef:
+                    name: frontend-config-map
+    ```
+
+    - Description of the _Deployment's_ specification:
+        - `spec.replicas = 1`
+        - `spec.selector.matchLabels = app=frontend`
+        - `spec.template`
+            - `template.metadata.labels = app=frontend`
+            - `template.spec.containers`
+                - `containers[0].image = rodolfoksveiga/django-react_django:latest`
+                    - The image was generated using the frontend `Dockerfile` created on the [previous tutorial](https://blog.mayflower.de/13652-containerizing-django-react-docker.html?cookie-state-change=1683468755671).
+                - `containers[0].ports.containerPort = 3000`
+                    - The container exposes the default port of the official React image.
+                - `containers[0].envFrom.configMapRef`
+                    - Inject all the configurations from the _ConfigMap_ store `frontend-config-map` as environment variables of the container.
+
+---
+
+4. `~/mayflower/infra/frontend/service.yaml`
+
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: frontend-service
+    spec:
+      type: ClusterIP
+      selector:
+        app: frontend
+      ports:
+        - name: 3000-3000
+          port: 3000
+          targetPort: 3000
+    ```
+
+    - Description of the _Service's_ specification:
+        - `type = ClusterIP`
+        - `selector = app=frontend`
+        - `ports`
+            - `ports[0].port = 3000` and `ports[0].targetPort === 3000`
+
+---
+
+5. `~/mayflower/infra/frontend/ingress.yaml`
+
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: ingress
+    spec:
+      rules:
+        - host: app.mayflower.de
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: frontend-service
+                    port:
+                      number: 3000
+    ```
+
+    - Description of the _Ingress's_ specification:
+        - `rules`
+            - `rules[0].host = app.mayflower.com`
+            - `rules.http.paths`
+                - `paths[0].path = /`
+                - `paths[0].pathType = Prefix`
+                - `paths[0].backend.service.name = frontend-service`
+                - `paths[0].backend.service.port.number = 3000`
+
+---
+
+Finally we can execute `kubectl create -f ~/mayflower/infra/frontend`, and shortly our React APP will be available on our browser through the URL `https://app.mayflower.com`. If you can see in the frontend the data you have created before in backend URL, it means you did everthing right and the services are properly connected to each other. The backend manage the database and the frontend prints the data gathered from the backend. *It wasn't that hard, right!?*
+
+![React with data](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/react.png)
+
+*That was quick, but it's indeed everything you need to get started with Kubernetes. Now you can use this Kubernetes cluster as you will. You can play around with it, extend it, and perhaps use it as a baseline to create your future customer's application.*
