@@ -36,3 +36,37 @@ To follow the approach proposed in this tutorial, we must have the following pac
 > Remember that you can still use newer version of the referred packages, but be aware that sometimes you may reproduce different outputs.
 
 **That's all you need..!** After installing these packages and configuring Minikube, you're good to go!
+
+### Stage 0 - Foundation
+
+The first step of our Kubernetes journey is to download the data related to the containers developed in the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html). Since the `main` branch of the previous tutorial was forked into the `stage0-base` branch of the current tutorial, we simply have to clone the [current tutorial's Git repository](https://github.com/rodolfoksveiga/k8s-django-react) into a local machine and switch the branch.
+
+1. Create the local repository `~/mayflower`, clone the Git repository into it, and switch to the branch `stage0-base`.
+
+    ```bash
+    mkdir ~/mayflower
+    cd ~/mayflower
+    git clone https://github.com/rodolfoksveiga/k8s-django-react.git .
+    git switch stage0-base
+    ```
+
+    At this point we should be able to run `docker-compose up` from `~/mayflower`. After successfully running the containers, we can open our browser and navigate to http://localhost:8000 (Django API) or http://localhost:3000 (React APP). If you want to have a better idea of the project's structure, feel free to investigate the files within this branch and test the application. By doing it so, you'll feel more confident in the comming sections of this tutorial.
+
+    > If it's all still a bit confusing for you, I totally recommend you to step back and follow the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html) through.
+
+2. Add the hosts `api.mayflower.com` and `app.mayflower.com` to your hosts' file.
+
+    To be able to access our application using the browser, we have to map Minikube's IP address to the target URL. So first we have to find out our Minikube's IP. To figure that out, we can execute `minikube ip` and check the command's output. Next we have to add two new line to our hosts' file containing our Minikube IP and the mapped hosts. To do that we can follow the example below:
+
+    ```bash
+    $MINIKUBE_IP_ADDRESS api.mayflower.de
+    $MINIKUBE_IP_ADDRESS app.mayflower.de
+    ```
+
+    In this example we just have to substitute `$MINIKUBE_IP_ADDRESS` with the IP address printed out as we ran the command `minikube ip`.
+
+    > The host file location depends on your operational system. At Linux, MacOS, and Windows the file can be found respectively on: `/etc/hosts`, `/private/etc/hosts`, and `c:\Windows\System32\Drivers\etc\hosts`.
+
+In the following sections we'll define the necessary resources to deploy database, backend, and frontend to Kubernetes. We'll store our environment variables in _ConfigMaps_ or _Secrets_, according to the needs. All our persistent data will be managed by a _PersistentVolume (PV)_, which will be attached to a _Pod_ through a _PersistentVolumeClaims (PVC)_. We'll deploy our containers using _Deployments_. A _Deployment_ is an abstract layer wrapping _Pods_, the Kubernetes' smallest deployable units of computing. _Deployments_ regularly check if their _Pods_ are healthy and create or delete _Pods_ whenever demanded. We'll finally expose our _Pods_ internally using _ClusterIP Services_ and externally using _Ingresses_.
+
+That was all we need to prepare. **Let's get started!**
