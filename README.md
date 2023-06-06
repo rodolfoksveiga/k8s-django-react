@@ -244,7 +244,7 @@ In the database section we'll setup the following resources: _Secret_, _PV_, _PV
 
 ### Stage 2 - Backend (Django)
 
-In the second section we'll setup the Django API and its resources, which are: _Secret_, _Deployment_, _Service_, and _Ingress_. This time we need an _Ingress_ to externally expose our API. The _Ingress_ will map our cluster IP to a human-readable URL. Be sure that you went through the steps described at the [requirements section](####requeriments), so you can later access the API from your browser.
+In the second section we'll setup the Django API and its resources, which are: _Secret_, _Deployment_, _Service_, and _Ingress_. This time we need an _Ingress_ to externally expose our API. The _Ingress_ will map our cluster IP to a human-readable URL. Be sure that you went through the steps described at the [requirements section](#requeriments), so you can later access the API from your browser.
 
 1. `~/mayflower/infra/backend/secret.yaml`
 
@@ -264,7 +264,7 @@ In the second section we'll setup the Django API and its resources, which are: _
       name: backend-secret
     ```
 
-    Here we had to define all the nine environment variables necessary to run our Docker image. These variables are essential to properly setup communication between Django's ORM and the PostgreSQL database. A detailed description of these variables can be found in the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html). To check the value of the variables, you can use the command `echo $VARIABLE_VALUE | base64 --decode`, as mentioned in the [database section](###stage-1).
+    Here we had to define all the nine environment variables necessary to run our Docker image. These variables are essential to properly setup communication between Django's ORM and the PostgreSQL database. A detailed description of these variables can be found in the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html). To check the value of the variables, you can use the command `echo $VARIABLE_VALUE | base64 --decode`, as mentioned in the [database section](#stage-1-database-postgresql).
 
 ---
 
@@ -374,7 +374,7 @@ In the second section we'll setup the Django API and its resources, which are: _
     - Description of the _Ingress's_ specification:
         - `rules`: list of hosts to expose routes associated to services
             - `rules[0].host = api.mayflower.com`
-                - The mapped URL of our Django API. This URL matches the URL added to our hosts' file on the [foundation section](###stage-0).
+                - The mapped URL of our Django API. This URL matches the URL added to our hosts' file on the [foundation section](#stage-0-foundation).
             - `rules.http.paths`: list of routes to expose spicific service ports
                 - `paths[0].path = /`
                     - The root path of the host is mapped the root route endpoint of Django API.
@@ -516,4 +516,12 @@ Finally we can execute `kubectl create -f ~/mayflower/infra/frontend`, and short
 
 ![React with data](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/react.png)
 
-*That was quick, but it's indeed everything you need to get started with Kubernetes. Now you can use this Kubernetes cluster as you will. You can play around with it, extend it, and perhaps use it as a baseline to create your future customer's application.*
+**That was quick, but it's indeed everything you need to get started with Kubernetes. Now you can use this Kubernetes cluster as you will. You can play around with it, extend it, and perhaps use it as a baseline to create your future customer's application.**
+
+## Conclusion
+
+Following through this tutorial, you learned how to serve your PostgreSQL, Django, and React containers from a Minikube Kubernetes cluster, which mimics a real cloud server. Since you already learned in the [previous tutorial](https://blog.mayflower.de/13652-containerizing-django-react-docker.html) how to package application in containers, this was your second step into the cloud - and it was huge one!
+
+You can reproduce many of the concepts you've learned here in a real world application, but there were still some limitations to consider before you publicly deploy your containers to Kubernetes. Among the limitations, it's worth it to point out once more that the _Secrets_ we defined are only "base64" encoded, therefore everyone can decode it using a simple a command. To really protect your data you must encrypt it at rest. Luckly Kubernetes has a [built-in feature](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data) to achieve that. Check it out and implement it on your Kubernetes' cluster.
+
+Well, you have now the whole power of Kubernetes at the tip of your fingers! You can seamlessly deploy new resources, expose them internally to the services you've already deployed or to external services, scale your containers using _Deployments_, so the demand of your application is optimally fulfilled, and much more... Kubernetes offers you the possibility to easily design the infrastructure to match your needs, so it's opportunity to go further and think your infrastructure your way. Use the concepts you've just learned, but don't limit yourself to them.
