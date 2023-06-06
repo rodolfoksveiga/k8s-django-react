@@ -13,7 +13,7 @@ The goal of this blog article is to demonstrate how to deploy the previously dev
 In order to structure our learning, the tutorial is split into four stages:
 
 - _Stage 0_: Foundation - [stage0-base](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage0-base)
-  - This branch is a copy of the [main branch](https://github.com/mayflower/k8s-django-react) of the previous tutorial
+    - This branch is a copy of the [main branch](https://github.com/mayflower/k8s-django-react) of the previous tutorial
 - _Stage 1_: PostgreSQL Database - [stage1-psql](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage1-psql)
 - _Stage 2_: Django API - [stage2-django](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage2-django)
 - _Stage 3_: React APP - [stage3-react](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage3-react)
@@ -25,13 +25,13 @@ A basic understanding of Kubernetes and the following resources is required: _Co
 To follow the approach proposed in this tutorial, we must have the following packages installed in our system:
 
 - Git
-  - `git 2.40`
+    - `git 2.40`
 - Docker
-  - `docker 23.0`
+    - `docker 23.0`
 - Kubernetes
-  - `kubectl 1.27`
-  - `minikube 1.29`
-    - Be sure that your Minikube cluster is up and running. To achieve that, execute `minikube start`. Check the status of your cluster with `minikube status`. You also need to deploy an _Ingress_ controller running `minikube addons enable ingress`. The status of your Minikube addons can be verified with `minikube addons list`. For debugging Minikube's setup, refer to their detailed [Documentation](https://minikube.sigs.k8s.io/docs/)
+    - `kubectl 1.27`
+    - `minikube 1.29`
+        - Be sure that your Minikube cluster is up and running. To achieve that, execute `minikube start`. Check the status of your cluster with `minikube status`. You also need to deploy an _Ingress_ controller running `minikube addons enable ingress`. The status of your Minikube addons can be verified with `minikube addons list`. For debugging Minikube's setup, refer to their detailed [Documentation](https://minikube.sigs.k8s.io/docs/)
 
 > Remember that you can still use newer version of the referred packages, but be aware that sometimes you may reproduce different outputs.
 
@@ -40,8 +40,6 @@ To follow the approach proposed in this tutorial, we must have the following pac
 ### Stage 0 - Foundation
 
 The first step of our Kubernetes journey is to download the data related to the containers developed in the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html). Since the `main` branch of the previous tutorial was forked into the `stage0-base` branch of the current tutorial, we simply have to clone the [current tutorial's Git repository](https://github.com/rodolfoksveiga/k8s-django-react) into a local machine and switch the branch.
-
----
 
 1. Create the local repository `~/mayflower`, clone the Git repository into it, and switch to the branch `stage0-base`.
 
@@ -71,6 +69,8 @@ The first step of our Kubernetes journey is to download the data related to the 
 
     > The host file location depends on your operational system. At Linux, MacOS, and Windows the file can be found respectively on: `/etc/hosts`, `/private/etc/hosts`, and `c:\Windows\System32\Drivers\etc\hosts`.
 
+---
+
 In the following sections we'll define the necessary resources to deploy database, backend, and frontend to Kubernetes. We'll store our environment variables in _ConfigMaps_ or _Secrets_, according to the needs. All our persistent data will be managed by a _PersistentVolume (PV)_, which will be attached to a _Pod_ through a _PersistentVolumeClaims (PVC)_. We'll deploy our containers using _Deployments_. A _Deployment_ is an abstract layer wrapping _Pods_, the Kubernetes' smallest deployable units of computing. _Deployments_ regularly check if their _Pods_ are healthy and create or delete _Pods_ whenever demanded. We'll finally expose our _Pods_ internally using _ClusterIP Services_ and externally using _Ingresses_.
 
 That was all we need to prepare. **Let's get started!**
@@ -78,8 +78,6 @@ That was all we need to prepare. **Let's get started!**
 ### Stage 1 - Database (PostgreSQL)
 
 In the database section we'll setup the following resources: _Secret_, _PV_, _PVC_, _Deployment_, and _Service_. Note that we don't need to deploy an _Ingress_ for our database _Service_, because we want the database to be exposed only to the backend, which lives within the cluster. For that, a _ClusterIP Service_ is enough and safer than an _Ingress_.
-
----
 
 1. `~/mayflower/infra/database/secret.yaml`
 
@@ -191,25 +189,25 @@ In the database section we'll setup the following resources: _Secret_, _PV_, _PV
                 claimName: database-persistent-volume-claim
     ```
 
-   - Description of the _Deployment's_ specification:
-       - `spec.replicas = 1`
-           - The _Deployment_ tries to always keep one _Pod_ in `Running` state.
-       - `spec.selector.matchLabels = app=database`
-           - The _Deployment_ is allowed to manage the _Pods_ with label `app` equals to `database`. Any other _Pod_ with such label key and value will also be taken into consideration by this _Deployment_.
-       - `spec.template`: configuration of the _Pod_ to be created by the _Deployment_ whenever needed
-           - `template.metadata.labels = app=database`
-               - Set the label key `app` equals to `database` to this _Pod_, so the _Deployment_ can use it for future state management of its underlying _Pods_.
-           - `template.spec.containers`: list of containers deployed in the _Pod_
-               - `containers[0].image = postgres:14.1-alpine`
-                   - The image used to deploy the _Pods_ is the official PostgreSQL image.
-               - `containers[0].ports.containerPort = 5432`
-                   - The container exposes the default port of the official PostgreSQL image.
-               - `containers[0].envFrom`
-                   - Inject all the secrets from the _Secret_ store `database-secret` as environment variables of the container.
-               - `containers[0].volumeMounts`
-                   - The container mounts just one volume on path `/var/lib/postgresql/data` (container), where it stores the data of our database.
-           - `template.volumes`
-               - Map the volume mounted on the container to the _PVC_ `database-persistent-volume-claim` created beforehand. Note that the _PVC_ will look for a _PV_ matching its requirements.
+    - Description of the _Deployment's_ specification:
+        - `spec.replicas = 1`
+            - The _Deployment_ tries to always keep one _Pod_ in `Running` state.
+        - `spec.selector.matchLabels = app=database`
+            - The _Deployment_ is allowed to manage the _Pods_ with label `app` equals to `database`. Any other _Pod_ with such label key and value will also be taken into consideration by this _Deployment_.
+        - `spec.template`: configuration of the _Pod_ to be created by the _Deployment_ whenever needed
+            - `template.metadata.labels = app=database`
+                - Set the label key `app` equals to `database` to this _Pod_, so the _Deployment_ can use it for future state management of its underlying _Pods_.
+            - `template.spec.containers`: list of containers deployed in the _Pod_
+                - `containers[0].image = postgres:14.1-alpine`
+                    - The image used to deploy the _Pods_ is the official PostgreSQL image.
+                - `containers[0].ports.containerPort = 5432`
+                    - The container exposes the default port of the official PostgreSQL image.
+                - `containers[0].envFrom`
+                    - Inject all the secrets from the _Secret_ store `database-secret` as environment variables of the container.
+                - `containers[0].volumeMounts`
+                    - The container mounts just one volume on path `/var/lib/postgresql/data` (container), where it stores the data of our database.
+            - `template.volumes`
+                - Map the volume mounted on the container to the _PVC_ `database-persistent-volume-claim` created beforehand. Note that the _PVC_ will look for a _PV_ matching its requirements.
 
 ---
 
@@ -232,14 +230,164 @@ In the database section we'll setup the following resources: _Secret_, _PV_, _PV
           targetPort: 5432
     ```
 
-- Description of the _Service's_ specification:
-    - `type = ClusterIP`
-    - `selector = app=database`
-        - As well as the _Deployment_, the _Service_ use the `selector` to match the _Pods_ with the same labels. In this case, we want to match the database _Pod_, which has label key `app` equals to `database`. 
-    - `ports`: list of ports that will be exposed by the cluster
-        - `ports[0].port = 5432` and `ports[0].targetPort === 5432`
-            - Port `5432` of the container (target) was mapped to the same port on the cluster.
+    - Description of the _Service's_ specification:
+        - `type = ClusterIP`
+        - `selector = app=database`
+            - As well as the _Deployment_, the _Service_ use the `selector` to match the _Pods_ with the same labels. In this case, we want to match the database _Pod_, which has label key `app` equals to `database`. 
+        - `ports`: list of ports that will be exposed by the cluster
+            - `ports[0].port = 5432` and `ports[0].targetPort === 5432`
+                - Port `5432` of the container (target) was mapped to the same port on the cluster.
 
     After setting it all up we can execute `kubectl create -f ~/mayflower/infra/database`. If everything went right, when we run `kubectl get all` we'll see the resources we just deployed. For example, if we run `kubectl get deploys` we should see a list containing our `database-deployment`.
 
 > You probably have learned a lot in this section and what we'll do next will be pretty similar. To avoid repeting concepts, we'll keep the resources' description quite shorter in the comming sections. If you need, come back to this section to recap some stuff that may still be confusing.
+
+### Stage 2 - Backend (Django)
+
+In the second section we'll setup the Django API and its resources, which are: _Secret_, _Deployment_, _Service_, and _Ingress_. This time we need an _Ingress_ to externally expose our API. The _Ingress_ will map our cluster IP to a human-readable URL. Be sure that you went through the steps described at the [requirements section](####requeriments), so you can later access the API from your browser.
+
+1. `~/mayflower/infra/backend/secret.yaml`
+
+    ```yaml
+    apiVersion: v1
+    data:
+      DJANGO_SUPERUSER_EMAIL: YWRtaW5AbWF5Zmxvd2VyLmNvbQ==
+      DJANGO_SUPERUSER_PASSWORD: bWF5Zmxvd2Vy
+      DJANGO_SUPERUSER_USERNAME: YWRtaW4=
+      PSQL_HOST: ZGF0YWJhc2Utc2VydmljZQ==
+      PSQL_NAME: cG9zdGdyZXM=
+      PSQL_PASSWORD: cGFzc3dvcmQ=
+      PSQL_PORT: NTQzMg==
+      PSQL_USER: YWRtaW4=
+    kind: Secret
+    metadata:
+      name: backend-secret
+    ```
+
+    Here we had to define all the nine environment variables necessary to run our Docker image. These variables are essential to properly setup communication between Django's ORM and the PostgreSQL database. A detailed description of these variables can be found in the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html). To check the value of the variables, you can use the command `echo $VARIABLE_VALUE | base64 --decode`, as mentioned in the [database section](###stage-1).
+
+---
+
+2. `~/mayflower/infra/backend/deployment.yaml`
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: backend
+      name: backend-deployment
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: backend
+      template:
+        metadata:
+          labels:
+            app: backend
+        spec:
+          containers:
+            - image: rodolfoksveiga/django-react_django:new
+              name: django
+              ports:
+                - containerPort: 8000
+              envFrom:
+                - secretRef:
+                    name: backend-secret
+              volumeMounts:
+                - name: backend-logs
+                  mountPath: /var/log
+          volumes:
+            - name: backend-logs
+              hostPath:
+                path: /var/log
+    ```
+
+    - Description of the _Deployment's_ specification:
+        - `spec.replicas = 1`
+        - `spec.selector.matchLabels = app=backend`
+        - `spec.template`
+            - `template.metadata.labels = app=backend`
+            - `template.spec.containers`
+                - `containers[0].image = rodolfoksveiga/django-react_django:latest`
+                    - The image was generated using the backend `Dockerfile` created on the [last tutorial](https://blog.mayflower.de/13652-containerizing-django-react-docker.html?cookie-state-change=1683468755671).
+                - `containers[0].ports.containerPort = 8000`
+                    - The container exposes the default port of the official Django image.
+                - `containers[0].envFrom`
+                    - Inject all the secrets from the _Secret_ store `backend-secret` as environment variables of the container.
+                - `containers[0].volumeMounts`
+                    - The container mounts just one volume on path `/var/log` (container), where it writes Django API logs.
+            - `template.volumes`
+                - Map the volume mounted on the container to the `/var/log` (host machine).
+
+---
+
+3. `~/mayflower/infra/backend/service.yaml`
+
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: backend-service
+    spec:
+      type: ClusterIP
+      selector:
+        app: backend
+      ports:
+        - name: 8000-8000
+          port: 8000
+          targetPort: 8000
+    ```
+
+    - Description of the _Service's_ specification:
+        - `type = ClusterIP`
+        - `selector = app=backend`
+        - `ports`
+            - `ports[0].port = 8000` and `ports[0].targetPort === 8000`
+
+---
+
+4. `~/mayflower/infra/backend/ingress.yaml`
+
+    As we already discussed, a _Pod_ exposed by a _Service_ can only be reached from inside the cluster. Since we want to call the API from the frontend, which will run on our browser, we also need to deploy an _Ingress_.
+
+    ```yaml
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: backend-ingress
+    spec:
+      rules:
+        - host: api.mayflower.de
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: backend-service
+                    port:
+                      number: 8000
+    ```
+
+    - Description of the _Ingress's_ specification:
+        - `rules`: list of hosts to expose routes associated to services
+            - `rules[0].host = api.mayflower.com`
+                - The mapped URL of our Django API. This URL matches the URL added to our hosts' file on the [foundation section](###stage-0).
+            - `rules.http.paths`: list of routes to expose spicific service ports
+                - `paths[0].path = /`
+                    - The root path of the host is mapped the root route endpoint of Django API.
+                - `paths[0].pathType = Prefix`
+                    - The value `Prefix` of the `pathType` key means that the children routes of our _Service_ will also be mapped to this host. For example, we'll be able to access the backend endpoint `/admin` on `https://api.mayflower.com/admin` as well as the endpoint `/students` on `https://api.mayflower.com/students`.
+                - `paths[0].backend.service.name = backend-service`
+                    - The _Ingress_ will look for a _Service_ called `backend-service`.
+                - `paths[0].backend.service.port.number = 8000`
+                    - We mapped the _Service's_ port `8000` to the root route.
+
+To deploy our backend in we can execute `kubectl create -f ~/mayflower/infra/backend`, and "voilà", our Django API is accessible through the URL `https://api.mayflower.com`. **Isn't it cool!?**
+
+Play around with your API, add some students to our database, so you can see it later on our frontend URL.
+
+![Django Admin](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/django_admin.png)
+![Student's Endpoint](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/students_endpoint.png)

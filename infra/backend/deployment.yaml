@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: backend
+  name: backend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - image: rodolfoksveiga/django-react_django:new
+          name: django
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: backend-secret
+          volumeMounts:
+            - name: backend-logs
+              mountPath: /var/log
+      volumes:
+        - name: backend-logs
+          hostPath:
+            path: /var/log
