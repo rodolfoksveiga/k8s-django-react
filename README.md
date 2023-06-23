@@ -2,18 +2,18 @@
 
 In a [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html) we explored the capabalities of Docker and created containers for a Django and React web application, regarding a development environment. While Docker is an excellent tool for packaging containerized applications, it might not be enough for deploying applications in a production environment. Managing multiple containers across multiple servers, load balancing, and scaling the application is out of Docker's scope and can quickly become a complex, time-consuming, and error-proning task. This is where container orchestration comes into play.
 
-Container orchestration is a crucial tool for managing and deploying containerized applications at scale. With the increasing adoption of containerization, the need for orchestration has become critical to ensure a efficient management of infrastructures. Container orchestration frameworks enable development and operation teams to automate deployment and management of containerized applications. This technology also promotes high availability, resilience, and fault tolerance, making it a valuable tool to implement Continuous Integration/Containuous Deployment (CI/CD).
+Container orchestration is a crucial tool for managing and deploying containerized applications at scale. With the increasing adoption of containerization, the need for orchestration has become critical to ensure a efficient management of infrastructures. Container orchestration frameworks enable development and operation teams to automate deployment and management of containerized applications. This technology also promotes high availability, resilience, and fault tolerance, making it a valuable tool to implement Continuous Integration/Continuous Deployment (CI/CD).
 
 While there are many container orchestration tools available, Kubernetes has emerged as the most popular framework. Among many reasons why Kubernetes became so popular, there are its scalability, flexibility, and active open-source community. Kubernetes offers a comprehensive solution for orchestrating from small to large-scale applications, making it a viable choice for diverse enterprises. Besides that, Kubernetes provides built-in security features and robust monitoring capabilities, making it secure and reliable.
 
-Since Kubernetes is designed to run applications in clusters, developers may benefit of deploying the Kubernetes cluster locally throughout the infrastructure development stage. Minikube is a tool that allows developers to create a local Kubernetes cluster, which mimics a production environment. Using Minikube they can test and debug their applications locally and ensure that the application will run correctly when deployed to a production cluster.
+Since Kubernetes is designed to run applications in clusters, developers may benefit from deploying the Kubernetes cluster locally throughout the infrastructure development stage. Minikube is a tool that allows developers to create a local Kubernetes cluster, which mimics a production environment. Using Minikube they can test and debug their applications locally and ensure that the application will run correctly when deployed to a production cluster.
 
-The goal of this blog article is to demonstrate how to deploy the previously developed Django and React application to a Kubernetes cluster using Minikube. By following this tutorial, you'll learn how to create a local Kubernetes cluster using Minikube and deploy the pre-built containerized applications to it. This tutorial covers topics such as creating Kubernetes _PersistentVolumes_, _Deployments_, _Services_, and much more. Stay tunned and take the best out of it!
+The goal of this blog article is to demonstrate how to deploy the previously developed Django and React application to a Kubernetes cluster using Minikube. By following this tutorial, you'll learn how to create a local Kubernetes cluster using Minikube and deploy the pre-built containerized applications to it. This tutorial covers topics such as creating Kubernetes _PersistentVolumes_, _Deployments_, _Services_, and much more. Stay tuned and take the best out of it!
 
 In order to structure our learning, the tutorial is split into four stages:
 
 - _Stage 0_: Foundation - [stage0-base](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage0-base)
-    - This branch is a copy of the [main branch](https://github.com/mayflower/k8s-django-react) of the previous tutorial
+    - This branch is a copy of the [main branch](https://github.com/rodolfoksveiga/k8s-django-react) of the previous tutorial
 - _Stage 1_: PostgreSQL Database - [stage1-psql](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage1-psql)
 - _Stage 2_: Django API - [stage2-django](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage2-django)
 - _Stage 3_: React APP - [stage3-react](https://github.com/rodolfoksveiga/k8s-django-react/tree/stage3-react)
@@ -22,8 +22,7 @@ In order to structure our learning, the tutorial is split into four stages:
 
 A basic understanding of Kubernetes and the following resources is required: _ConfigMap_, _Secret_, _Pod_, _Deployment_, _Service_, and _Ingress_. In case you haven't had contact with these resources, take your time to read the [Kubernetes documentation](https://kubernetes.io/docs/home/). Don't rush, the blog post will still be available for you later!
 
-To follow the approach proposed in this tutorial, we must have the following packages installed in our system:
-
+To follow the approach proposed in this tutorial, we must have the following packages installed on our system:
 - Git
     - `git 2.40`
 - Docker
@@ -50,28 +49,62 @@ The first step of our Kubernetes journey is to download the data related to the 
     git switch stage0-base
     ```
 
-    At this point we should be able to run `docker-compose up` from `~/mayflower`. After successfully running the containers, we can open our browser and navigate to http://localhost:8000 (Django API) or http://localhost:3000 (React APP). If you want to have a better idea of the project's structure, feel free to investigate the files within this branch and test the application. By doing it so, you'll feel more confident in the comming sections of this tutorial.
+---
 
-    > If it's all still a bit confusing for you, I totally recommend you to step back and follow the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html) through.
+2. Add the hosts `api.mayflower.de` to the variable `ALLOWED_HOSTS` at `~/mayflower/api/api/settings.py`. Doing it so, we allow Django to serve our API not only on `localhost` but also on the domain `api.mayflower.de`.
+
+    ```python
+    ...
+
+    ALLOWED_HOSTS = ["localhost", "api.mayflower.de"]
+
+    ...
+    ```
 
 ---
 
-2. Add the hosts `api.mayflower.com` and `app.mayflower.com` to your hosts' file.
+3. Add the hosts `api.mayflower.de` and `app.mayflower.de` to your hosts' file.
 
-    To be able to access our application using the browser, we have to map Minikube's IP address to the target URL. So first we have to find out our Minikube's IP. To figure that out, we can execute `minikube ip` and check the command's output. Next we have to add two new line to our hosts' file containing our Minikube IP and the mapped hosts. To do that we can follow the example below:
+    To be able to access our application using the browser, we have to map Minikube's IP address to the target URL. So first we have to find out our Minikube's IP. To figure that out, we can execute `minikube ip` and check the command's output. Next we have to add two new lines to our hosts' file containing our Minikube IP and the mapped hosts. To do that we can follow the example below:
 
     ```bash
+    ...
+
     $MINIKUBE_IP_ADDRESS api.mayflower.de
     $MINIKUBE_IP_ADDRESS app.mayflower.de
     ```
 
     In this example we just have to substitute `$MINIKUBE_IP_ADDRESS` with the IP address printed out as we ran the command `minikube ip`.
 
-    > The host file location depends on your operational system. At Linux, MacOS, and Windows the file can be found respectively on: `/etc/hosts`, `/private/etc/hosts`, and `c:\Windows\System32\Drivers\etc\hosts`.
+    > The host file location depends on your operational system. At Linux and MacOS the file can be found on `/etc/hosts` while at Windows it can be found on `c:\Windows\System32\Drivers\etc\hosts`.
 
 ---
 
-In the following sections we'll define the necessary resources to deploy database, backend, and frontend to Kubernetes. We'll store our environment variables in _ConfigMaps_ or _Secrets_, according to the needs. All our persistent data will be managed by a _PersistentVolume (PV)_, which will be attached to a _Pod_ through a _PersistentVolumeClaims (PVC)_. We'll deploy our containers using _Deployments_. A _Deployment_ is an abstract layer wrapping _Pods_, the Kubernetes' smallest deployable units of computing. _Deployments_ regularly check if their _Pods_ are healthy and create or delete _Pods_ whenever demanded. We'll finally expose our _Pods_ internally using _ClusterIP Services_ and externally using _Ingresses_.
+4. Assign the database host dynamically at `~/mayflower/api/api/settings.py`. The database host defined on `~/mayflower/docker-compose.yaml` (`psql`) is different than the host we'll define later on our Kubernetes' _Service_ (`database-service`), therefore, we have to dynamically check whether our application is running on the Kubernetes Cluster or using Docker and assign the right value to the database host.
+
+    ```python
+    ...
+
+    DATABASES = {
+        "default": {
+            ...
+            "HOST": environ.get("PSQL_SERVICE") or environ.get("PSQL_HOST"),
+            ...
+        }
+    }
+
+    ...
+    ```
+
+    Here we first checked if the environment variable `PSQL_SERVICE` defined by Kubernetes exists. If it does exist we use its value, if it does not exist we use the value of the environment variable `PSQL_HOST` defined in `~/mayflower/api/.env`.
+
+---
+
+At this point we should be able to run `docker-compose up` from `~/mayflower`. After successfully running the containers, we can open our browser and navigate to http://localhost:8000 (Django API) or http://localhost:3000 (React APP). If you want to have a better idea of the project's structure, feel free to investigate the files within this branch and test the application. By doing it so, you'll feel more confident in the comming sections of this tutorial.
+
+> If it's all still a bit confusing for you, I totally recommend you to step back and follow the [previous blog article](https://blog.mayflower.de/13652-containerizing-django-react-docker.html) through.
+
+From now on it's all Kubernetes! In the following sections we'll define the necessary resources to deploy database, backend, and frontend to Kubernetes. We'll store our environment variables in _ConfigMaps_ or _Secrets_, according to the needs. All our persistent data will be managed by a _PersistentVolume (PV)_, which will be attached to a _Pod_ through a _PersistentVolumeClaims (PVC)_. We'll deploy our containers using _Deployments_. A _Deployment_ is an abstract layer wrapping _Pods_, the Kubernetes' smallest deployable units of computing. _Deployments_ regularly check if their _Pods_ are healthy and create or delete _Pods_ whenever demanded. We'll finally expose our _Pods_ internally using _ClusterIP Services_ and externally using _Ingresses_.
 
 That was all we need to prepare. **Let's get started!**
 
@@ -373,13 +406,13 @@ In the second section we'll setup the Django API and its resources, which are: _
 
     - Description of the _Ingress's_ specification:
         - `rules`: list of hosts to expose routes associated to services
-            - `rules[0].host = api.mayflower.com`
+            - `rules[0].host = api.mayflower.de`
                 - The mapped URL of our Django API. This URL matches the URL added to our hosts' file on the [foundation section](#stage-0-foundation).
             - `rules.http.paths`: list of routes to expose spicific service ports
                 - `paths[0].path = /`
                     - The root path of the host is mapped the root route endpoint of Django API.
                 - `paths[0].pathType = Prefix`
-                    - The value `Prefix` of the `pathType` key means that the children routes of our _Service_ will also be mapped to this host. For example, we'll be able to access the backend endpoint `/admin` on `https://api.mayflower.com/admin` as well as the endpoint `/students` on `https://api.mayflower.com/students`.
+                    - The value `Prefix` of the `pathType` key means that the children routes of our _Service_ will also be mapped to this host. For example, we'll be able to access the backend endpoint `/admin` on `https://api.mayflower.de/admin` as well as the endpoint `/students` on `https://api.mayflower.de/students`.
                 - `paths[0].backend.service.name = backend-service`
                     - The _Ingress_ will look for a _Service_ called `backend-service`.
                 - `paths[0].backend.service.port.number = 8000`
@@ -387,7 +420,7 @@ In the second section we'll setup the Django API and its resources, which are: _
 
 ---
 
-To deploy our backend in we can execute `kubectl create -f ~/mayflower/infra/backend`, and "voilà", our Django API is accessible through the URL `https://api.mayflower.com`. **Isn't it cool!?**
+To deploy our backend in we can execute `kubectl create -f ~/mayflower/infra/backend`, and "voilà", our Django API is accessible through the URL `https://api.mayflower.de`. **Isn't it cool!?**
 
 Play around with your API, add some students to our database, so you can see it later on our frontend URL.
 
@@ -503,7 +536,7 @@ Last but not least, we'll deploy the React APP using the following resources: _C
 
     - Description of the _Ingress's_ specification:
         - `rules`
-            - `rules[0].host = app.mayflower.com`
+            - `rules[0].host = app.mayflower.de`
             - `rules.http.paths`
                 - `paths[0].path = /`
                 - `paths[0].pathType = Prefix`
@@ -512,7 +545,7 @@ Last but not least, we'll deploy the React APP using the following resources: _C
 
 ---
 
-Finally we can execute `kubectl create -f ~/mayflower/infra/frontend`, and shortly our React APP will be available on our browser through the URL `https://app.mayflower.com`. If you can see in the frontend the data you have created before in backend URL, it means you did everthing right and the services are properly connected to each other. The backend manage the database and the frontend prints the data gathered from the backend. *It wasn't that hard, right!?*
+Finally we can execute `kubectl create -f ~/mayflower/infra/frontend`, and shortly our React APP will be available on our browser through the URL `https://app.mayflower.de`. If you can see in the frontend the data you have created before in backend URL, it means you did everthing right and the services are properly connected to each other. The backend manage the database and the frontend prints the data gathered from the backend. *It wasn't that hard, right!?*
 
 ![React with data](https://github.com/rodolfoksveiga/k8s-django-react/blob/main/imgs/react.png)
 

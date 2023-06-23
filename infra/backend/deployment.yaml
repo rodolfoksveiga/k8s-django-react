@@ -15,7 +15,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: rodolfoksveiga/django-react_django:new
+        - image: rodolfoksveiga/django-react_django:latest
           name: django
           ports:
             - containerPort: 8000

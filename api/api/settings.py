@@ -21,11 +21,9 @@ SECRET_KEY = "django-insecure-(s9r6wz3e!bg*u#me$+!%d8)+j6ycu@ob+8ogf!(x@3n__fugh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["api.mayflower.de"]
+ALLOWED_HOSTS = ["localhost", "api.mayflower.de"]
 
-CSRF_TRUSTED_ORIGINS = ["https://api.mayflower.de"]
-
-CORS_ALLOWED_ORIGINS = ["https://app.mayflower.de"]
+CORS_ORIGIN_ALLOW_ALL = True
 
 # Application definition
 INSTALLED_APPS = [
@@ -92,7 +90,7 @@ DATABASES = {
         "NAME": environ.get("PSQL_NAME"),
         "USER": environ.get("PSQL_USER"),
         "PASSWORD": environ.get("PSQL_PASSWORD"),
-        "HOST": environ.get("PSQL_HOST"),
+        "HOST": environ.get("PSQL_SERVICE") or environ.get("PSQL_HOST"),
         "PORT": environ.get("PSQL_PORT"),
     }
 }
