@@ -13,4 +13,4 @@ spec:
               service:
                 name: backend-service
                 port:
-                  number: 8000
+                  number: {{ .Values.service.port }}

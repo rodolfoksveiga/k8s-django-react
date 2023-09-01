@@ -8,5 +8,5 @@ spec:
     app: backend
   ports:
     - name: 8000-8000
-      port: 8000
-      targetPort: 8000
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.container.port }}

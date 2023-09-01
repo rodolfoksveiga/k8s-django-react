@@ -1,0 +1,1 @@
+Service Port: {{ .Values.service.port }}

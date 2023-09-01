@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Chart.Name }}
+  name: {{ .Chart.Name }}-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - image: rodolfoksveiga/django-react_django:{{ .Values.image.tag }}
+          name: django
+          ports:
+            - containerPort: {{ .Values.container.port }}
+          envFrom:
+            - secretRef:
+                name: {{ .Chart.Name }}-secret
+          volumeMounts:
+            - name: {{ .Chart.Name }}-logs
+              mountPath: /var/log
+      volumes:
+        - name: {{ .Chart.Name }}-logs
+          hostPath:
+            path: /var/log

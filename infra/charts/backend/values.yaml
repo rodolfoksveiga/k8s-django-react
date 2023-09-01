@@ -1,0 +1,4 @@
+container:
+  port: 8000
+image:
+  tag: latest
